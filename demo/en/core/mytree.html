@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<HTML>
+<HEAD>
+	<TITLE> ZTREE DEMO - my Simple Data</TITLE>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="../../../css/demo.css" type="text/css">
+	<link rel="stylesheet" href="../../../css/zTreeStyle/zTreeStyle.css" type="text/css">
+	<script type="text/javascript" src="../../../js/jquery-1.8.2.min.js"></script>
+	<script type="text/javascript" src="../../../js/jquery.ztree.core-3.5.js"></script>
+	<script type="text/javascript" src="../../../js/jquery.ztree.exhide-3.5.min.js"></script>
+	<!--  <script type="text/javascript" src="../../../js/jquery.ztree.excheck-3.5.js"></script>
+	  <script type="text/javascript" src="../../../js/jquery.ztree.exedit-3.5.js"></script>-->
+	<SCRIPT type="text/javascript">
+		<!--
+		var setting = {
+			data: {
+				simpleData: {
+					enable: true
+				}
+			},
+			view: {
+				fontCss: getFontCss
+			}
+		};
+
+		var zNodes =[
+			{id:0,pId:-1,name:"root"},
+			{ id:1, pId:0, name:"父节点1 - 展开", open:true},
+			{ id:11, pId:1, name:"父节点11 - 折叠"},
+			{ id:111, pId:11, name:"叶子节点111"},
+			{ id:112, pId:11, name:"叶子节点112"},
+			{ id:113, pId:11, name:"叶子节点113"},
+			{ id:114, pId:11, name:"叶子节点114"},
+			{ id:12, pId:1, name:"父节点12 - 折叠"},
+			{ id:121, pId:12, name:"叶子节点121"},
+			{ id:122, pId:12, name:"叶子节点122"},
+			{ id:123, pId:12, name:"叶子节点123"},
+			{ id:124, pId:12, name:"叶子节点124"},
+			{ id:13, pId:1, name:"父节点13 - 没有子节点", isParent:true},
+			{ id:2, pId:0, name:"父节点2 - 折叠"},
+			{ id:21, pId:2, name:"父节点21 - 展开", open:true},
+			{ id:211, pId:21, name:"叶子节点211"},
+			{ id:212, pId:21, name:"叶子节点212"},
+			{ id:213, pId:21, name:"叶子节点213"},
+			{ id:214, pId:21, name:"叶子节点214"},
+			{ id:22, pId:2, name:"父节点22 - 折叠"},
+			{ id:221, pId:22, name:"叶子节点221"},
+			{ id:222, pId:22, name:"叶子节点222"},
+			{ id:223, pId:22, name:"叶子节点223"},
+			{ id:224, pId:22, name:"叶子节点224"},
+			{ id:23, pId:2, name:"父节点23 - 折叠"},
+			{ id:231, pId:23, name:"叶子节点231"},
+			{ id:232, pId:23, name:"叶子节点232"},
+			{ id:233, pId:23, name:"叶子节点233"},
+			{ id:234, pId:23, name:"叶子节点234"},
+			{ id:3, pId:0, name:"父节点3 - 没有子节点", isParent:true}
+		];
+		var zNodes2=[
+			{id:0,pId:-1,name:"搜索结果",isParent:true}
+		];
+		$(document).ready(function(){
+			$.fn.zTree.init($("#treeDemo"), setting, zNodes);
+			$.fn.zTree.init($("#searchtreeDemo"),setting,zNodes2);
+			//$.fn.zTree.getZTreeObj("searchtreeDemo").expandAll(true);
+			var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
+			var obj = searchTreeObj.getNodeByParam("id", "11");
+			//alert(obj == null);
+			
+			$("#searchBtn").click(function(){
+				$.fn.zTree.init($("#searchtreeDemo"),setting,zNodes2);
+				
+				var key = $("#key").val().trim();
+				var baseTreeObj = $.fn.zTree.getZTreeObj("treeDemo");
+				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
+				
+				var nodes = baseTreeObj.getNodesByParamFuzzy("name",key);
+				for(var i=0; i < nodes.length; i++)
+				{
+					appendSubTreeNodes(nodes[i],searchTreeObj.getNodes()[0],searchTreeObj);
+				}
+				
+			});
+		
+		});
+			function appendSubTreeNodes(node,rootNode,treeObj)
+			{
+				var newNode = upRecursiveAppendNode(node,rootNode,treeObj);
+				downRecursiveAppendNode(node,newNode.getParentNode(),treeObj);
+				newNode.highlight = true;
+				treeObj.updateNode(newNode);
+			}
+		
+			function upRecursiveAppendNode(node,rootNode,treeObj)
+			{
+				var level = node.level;
+				var rLevel = rootNode.level + 1;
+				if(level > rLevel)
+				{
+					var pNode = upRecursiveAppendNode(node.getParentNode(),rootNode,treeObj);
+					var existNode = treeObj.getNodeByParam("id", node.id);
+					if(existNode == null)
+					{
+						var newNode = {"id": node.id, "name": node.name, "pId":node.pId};
+						return treeObj.addNodes(pNode, newNode,"inner")[0];
+					}
+					else 
+					{
+						return existNode;
+					}
+				}
+				else
+				{
+					var existNode = treeObj.getNodeByParam("id", node.id);
+					if( existNode == null)
+					{
+						var newNode = {"id": node.id, "name": node.name, "pId":node.pId};
+						return treeObj.addNodes(rootNode,newNode,"inner")[0];
+					}
+					else 
+					{
+						return existNode;
+					}
+					
+				}
+			}
+			
+			function downRecursiveAppendNode(node,pNode,treeObj)
+			{
+				var newpNode = treeObj.getNodeByParam("id", node.id);
+				if(newpNode == null)
+				{
+					var newNode = {"id": node.id, "name": node.name, "pId":node.pId};
+					newpNode = treeObj.addNodes(pNode, newNode,"inner");
+				}
+				
+				var isParent = node.isParent;
+				if(isParent)
+				{
+					var childrenNodes =  node.children;
+					for(var i = 0,len = childrenNodes.length; i < len; i++)
+					{
+						downRecursiveAppendNode(childrenNodes[i],newpNode,treeObj);
+					}
+				}
+			}
+			
+			function getFontCss(treeId, treeNode) {
+				return (!!treeNode.highlight) ? {color:"#A60000", "font-weight":"bold"} : {color:"#333", "font-weight":"normal"};
+			}
+		//-->
+	</SCRIPT>
+ </HEAD>
+
+<BODY>
+<h1>实现树的搜索和显示</h1>
+<h6>[ 文件路径: core/my.html ]</h6>
+<div>
+	<input type="text" id="key" />
+	<input type="button" value="search" id="searchBtn"/>
+</div>
+<ul id="fuzzyMatchTips" style="list-style:none;margin:0px;padding:0px;width:150px;">
+	
+</ul>
+<div class="content_wrap">
+	<div class="zTreeDemoBackground left">
+		<ul id="treeDemo" class="ztree"></ul>
+	</div>
+	<div class="zTreeDemoBackground left">
+		<ul id="searchtreeDemo" class="ztree"></ul>
+	</div>
+</div>
+</BODY>
+</HTML>
