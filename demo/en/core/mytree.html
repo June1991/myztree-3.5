@@ -36,7 +36,7 @@
 			},
 			callback:{
 				beforeExpand: baseTreeBeforeExpand,
-				onClick:updateSearchTree	
+				onClick:createSearchTree	
 			}
 		};
 		var setting1 = {
@@ -52,7 +52,7 @@
 				enable: true
 			},
 			callback:{
-				onCheck:createSelectedTable
+				onCheck:updateSelectedTable
 			}
 		};
 		var zNodes =[
@@ -94,7 +94,6 @@
 			$.fn.zTree.init($("#treeDemo"), setting, zNodes);
 			$.fn.zTree.init($("#searchtreeDemo"),setting1,zNodes2);
 			$("#fuzzyMatchTips").hide();
-			
 			$("#searchBtn").click(function(){
 				$.fn.zTree.init($("#searchtreeDemo"),setting1,zNodes2);
 				
@@ -109,24 +108,43 @@
 				{
 					appendSubTreeNodes(nodes[i],searchTreeRoot,searchTreeObj);
 				}
-				
+				updateSearchTreeByTable($("#selectedList"),searchTreeObj);
+				lockSearchTreePnodes(searchTreeObj);
 			});
 			
 			$("#key").bind("propertychange", createTipBlock).bind("input", createTipBlock);
 			$("#fuzzyMatchTips").delegate("li", "click", function(){
 				$("#fuzzyMatchTips").hide();
-				$("key").val($(this).text());
+				$("#key").val($(this).text());
 				$("#searchBtn").click();
 			});
 		
 		});
-			function createSelectedTable(event,tId,treeNode)
+	
+			function updateSelectedTable(event,tId,treeNode)
 			{
-				var namePre = "";
-				var node = $.fn.zTree.getZTreeObj("searchtreeDemo").getNodes()[0];
+				var namePre = "Root";
+				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
+				var root = searchTreeObj.getNodes()[0];
+				var children = root.children;
+				if(children == null)
+				{
+					return;
+				}
 				var tableObj = $("#selectedList");
-				tableObj.empty();
-				recursiveAppendRow(tableObj,node,namePre);			
+				$("#selectedList tr").each(function(){
+					var id = $(this).attr("id").split("_")[1];
+					var existNode = searchTreeObj.getNodeByParam("id", id);
+					if(existNode != null)
+					{
+						$(this).remove();
+					}
+				});
+				for(var i=0,len=children.length; i <len; i++)
+				{
+					recursiveAppendRow(tableObj,children[i],namePre);
+				}
+							
 			}
 			
 			function recursiveAppendRow(tableObj,treeNode,namePre)
@@ -136,12 +154,13 @@
 				{
 					return;
 				}
-				else if(-1 == check_state && treeNode.checked)
+				else if(-1 == check_state && treeNode.checked && (tableObj.find("#r_"+treeNode.id).length == 0))
 				{
+		
 					var row = "<tr id='r_" + treeNode.id + "'><td>" + namePre + "/" + treeNode.name + "</td><td onclick='rmSelected(" + treeNode.id + ")' style='color:red'>X</td></tr>";
 					tableObj.append(row);
 				}
-				else if (2 == check_state)
+				else if (2 == check_state && (tableObj.find("#r_"+treeNode.id).length == 0))
 				{
 					var row = "<tr id='r_" + treeNode.id + "'><td>" + namePre + "/" + treeNode.name + "/ALL" + "</td><td onclick='rmSelected(" + treeNode.id + ")' style='color:red'>X</td></tr>";
 					tableObj.append(row);
@@ -152,7 +171,6 @@
 					if(children)
 					{
 						var curNamePre =  namePre + "/" + treeNode.name;
-						if(treeNode.level == 0) { curNamePre = "Root" ;}
 						for (var i=0, len=children.length; i < len; i++)
 						{
 							recursiveAppendRow(tableObj,children[i],curNamePre);
@@ -165,16 +183,44 @@
 			{
 				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
 				var node = searchTreeObj.getNodeByParam("id",treeNodeId);
-				searchTreeObj.checkNode(node,false,true);
+				if(node)
+				{
+					searchTreeObj.checkNode(node,false,true);
+				}
 				$("#r_"+treeNodeId).remove();
 			}
 			
-			function updateSearchTree(event,tId,treeNode){
+			function lockSearchTreePnodes(treeObj)
+			{
+				var nodes =  treeObj.transformToArray(treeObj.getNodes());
+				for(var i=0; i < nodes.length; i++)
+				{
+					if(nodes[i].isParent)
+					{
+						treeObj.setChkDisabled(nodes[i],true,false);
+					}
+				}
+			}
+			
+			function updateSearchTreeByTable(selectedTable,treeObj)
+			{
+				selectedTable.find("tr").each(function(){
+					var id = $(this).attr("id").split("_")[1];
+					var existNode = treeObj.getNodeByParam("id", id);
+					if(existNode != null)
+					{
+						treeObj.checkNode(existNode,true,true);
+					}
+					
+				});
+			}
+			function createSearchTree(event,tId,treeNode){
 				$.fn.zTree.init($("#searchtreeDemo"),setting1,zNodes2);
 				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
 				var root = searchTreeObj.getNodes()[0];
 				
 				downRecursiveAppendNode(treeNode,root,searchTreeObj);
+				updateSearchTreeByTable($("#selectedList"),searchTreeObj);
 			}
 			
 			function baseTreeBeforeExpand(treeId,treeNode)
