@@ -35,8 +35,12 @@
 				}
 			},
 			callback:{
-				beforeExpand: baseTreeBeforeExpand,
-				onClick:createSearchTree	
+				//beforeExpand: baseTreeBeforeExpand,
+				onClick:presentSubTreeOnSearchTree,
+				onCheck:updateTableAndSearchTree
+			},
+			check: {
+				enable: true
 			}
 		};
 		var setting1 = {
@@ -96,18 +100,14 @@
 			$("#fuzzyMatchTips").hide();
 			$("#searchBtn").click(function(){
 				$.fn.zTree.init($("#searchtreeDemo"),setting1,zNodes2);
-				
+			
 				var key = $("#key").val().trim();
 				if(key == "") return;
+				
 				var baseTreeObj = $.fn.zTree.getZTreeObj("treeDemo");
 				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
-				var baseTreeRoot = baseTreeObj.getNodes()[0];
-				var searchTreeRoot = searchTreeObj.getNodes()[0];
-				var nodes = baseTreeObj.getNodesByParamFuzzy("name",key,baseTreeRoot);
-				for(var i=0; i < nodes.length; i++)
-				{
-					appendSubTreeNodes(nodes[i],searchTreeRoot,searchTreeObj);
-				}
+				
+				createSearchTree(baseTreeObj,searchTreeObj,key);
 				updateSearchTreeByTable($("#selectedList"),searchTreeObj);
 				lockSearchTreePnodes(searchTreeObj);
 			});
@@ -120,33 +120,54 @@
 			});
 		
 		});
+		
+			function createSearchTree(baseTreeObj,searchTreeObj,key)
+			{
+				var baseTreeRoot = baseTreeObj.getNodes()[0];
+				var searchTreeRoot = searchTreeObj.getNodes()[0];
+				var nodes = baseTreeObj.getNodesByParamFuzzy("name",key,baseTreeRoot);
+				for(var i=0; i < nodes.length; i++)
+				{
+					appendSubTreeNodes(nodes[i],searchTreeRoot,searchTreeObj);
+				}
+			}
+		
+			/*synchronize baseTree when searchTree selected or not*/
+			function syncTreeChecked(treeNode,dstTreeObj)
+			{
+				try
+				{
+					var node = dstTreeObj.getNodeByParam("id",treeNode.id);
+					dstTreeObj.checkNode(node,treeNode.checked,true);	
+				}
+				catch(e)
+				{
+				
+				}
+			}
 	
 			function updateSelectedTable(event,tId,treeNode)
 			{
-				var namePre = "Root";
-				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
-				var root = searchTreeObj.getNodes()[0];
-				var children = root.children;
-				if(children == null)
-				{
-					return;
-				}
+				var namePre = "";
+				var baseTreeObj = $.fn.zTree.getZTreeObj("treeDemo");
 				var tableObj = $("#selectedList");
-				$("#selectedList tr").each(function(){
-					var id = $(this).attr("id").split("_")[1];
-					var existNode = searchTreeObj.getNodeByParam("id", id);
-					if(existNode != null)
-					{
-						$(this).remove();
-					}
-				});
-				for(var i=0,len=children.length; i <len; i++)
-				{
-					recursiveAppendRow(tableObj,children[i],namePre);
-				}
+				
+				syncTreeChecked(treeNode,baseTreeObj);
+				initSelectedTable(tableObj,baseTreeObj);	
 							
 			}
 			
+			/*init selectedTable by baseTree*/
+			function initSelectedTable(tableObj,baseTreeObj)
+			{
+				var namePre = "";
+				var root = baseTreeObj.getNodes()[0];	
+				
+				tableObj.empty();
+				recursiveAppendRow(tableObj,root,namePre);	
+			}
+			
+			/*append rows into selectedTable*/
 			function recursiveAppendRow(tableObj,treeNode,namePre)
 			{
 				var check_state = treeNode.check_Child_State;
@@ -182,14 +203,18 @@
 			function rmSelected(treeNodeId)
 			{
 				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
+				var baseTreeObj = $.fn.zTree.getZTreeObj("treeDemo");
+		
 				var node = searchTreeObj.getNodeByParam("id",treeNodeId);
 				if(node)
 				{
 					searchTreeObj.checkNode(node,false,true);
 				}
+				baseTreeObj.checkNode(baseTreeObj.getNodeByParam("id",treeNodeId),false,true);
 				$("#r_"+treeNodeId).remove();
 			}
 			
+			/*if searchTree is created by search result,this tree is not complete,so we need set all parentNodes nocheck = true; */
 			function lockSearchTreePnodes(treeObj)
 			{
 				var nodes =  treeObj.transformToArray(treeObj.getNodes());
@@ -197,24 +222,39 @@
 				{
 					if(nodes[i].isParent)
 					{
-						treeObj.setChkDisabled(nodes[i],true,false);
+						//treeObj.setChkDisabled(nodes[i],true,false);
+						nodes[i].nocheck = true;
+						treeObj.updateNode(nodes[i]);
 					}
 				}
 			}
 			
+			
 			function updateSearchTreeByTable(selectedTable,treeObj)
 			{
+				treeObj.checkAllNodes(false);
 				selectedTable.find("tr").each(function(){
 					var id = $(this).attr("id").split("_")[1];
 					var existNode = treeObj.getNodeByParam("id", id);
 					if(existNode != null)
 					{
 						treeObj.checkNode(existNode,true,true);
-					}
-					
+					}			
 				});
 			}
-			function createSearchTree(event,tId,treeNode){
+			
+			function updateTableAndSearchTree(event,tId,treeNode)
+			{
+				var namePre = "";
+				var baseTreeObj = $.fn.zTree.getZTreeObj("treeDemo");
+				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
+				var tableObj = $("#selectedList");
+				
+				initSelectedTable(tableObj,baseTreeObj);				
+				updateSearchTreeByTable(tableObj,searchTreeObj);
+			}
+			
+			function presentSubTreeOnSearchTree(event,tId,treeNode){
 				$.fn.zTree.init($("#searchtreeDemo"),setting1,zNodes2);
 				var searchTreeObj = $.fn.zTree.getZTreeObj("searchtreeDemo");
 				var root = searchTreeObj.getNodes()[0];
@@ -233,6 +273,7 @@
 					return true;
 				}
 			}
+			
 			function createTipBlock(){
 				$("#fuzzyMatchTips").empty();	
 				
