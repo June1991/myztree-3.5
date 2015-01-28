@@ -20,6 +20,9 @@
 	#fuzzyMatchTips li:hover{
 		background-color:#efefef;
 	}
+	.init{
+		color:#aaa;
+	}
 	</style>
 	<script type="text/javascript" src="../../../js/jquery-1.8.2.min.js"></script>
 	<script type="text/javascript" src="../../../js/jquery.ztree.core-3.5.js"></script>
@@ -112,13 +115,31 @@
 				lockSearchTreePnodes(searchTreeObj);
 			});
 			
-			$("#key").bind("propertychange", createTipBlock).bind("input", createTipBlock);
-			$("#fuzzyMatchTips").delegate("li", "click", function(){
+			$("#key").bind("propertychange", createTipBlock)
+			.bind("input", createTipBlock)
+			.bind("focus click",function(event){
+				if($(this).hasClass("init"))
+				{
+					$(this).val("");
+					$(this).removeClass("init");
+				}
+				event.stopPropagation();
+			});
+			$("#fuzzyMatchTips").delegate("li", "click", function(event){
 				$("#fuzzyMatchTips").hide();
 				$("#key").val($(this).text());
 				$("#searchBtn").click();
+				event.stopPropagation();
 			});
-		
+			$("body").click(function(){
+				$("#fuzzyMatchTips").hide();
+				var key = $("#key");
+				if(key.val().trim() == "")
+				{
+					key.val(key.attr("defaultValue"));
+					key.addClass("init");
+				}
+			});
 		});
 		
 			function createSearchTree(baseTreeObj,searchTreeObj,key)
@@ -377,7 +398,7 @@
 <h1>实现树的搜索和显示</h1>
 <h6>[ 文件路径: core/my.html ]</h6>
 <div>
-	<input type="text" id="key" />
+	<input type="text" id="key" value="fuzzySearch" defaultValue="fuzzySearch" class="init"/>
 	<input type="button" value="search" id="searchBtn"/>
 </div>
 <div id="fuzzyMatchTips">
